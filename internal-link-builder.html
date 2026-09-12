@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Internal Link Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2430;
+    --paper:#EDEEEA;
+    --panel:#F7F7F4;
+    --line:#D7D3C8;
+    --route:#2F6F5E;
+    --route-light:#DCEAE4;
+    --route-dark:#204F42;
+    --flag:#9C4221;
+    --flag-light:#F1E1D6;
+    --muted:#6B6558;
+    --white:#FFFFFF;
+    --radius:3px;
+    --serif:'Source Serif 4', Georgia, serif;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:var(--serif);font-weight:600;margin:0;color:var(--ink);}
+  a{color:var(--route-dark);}
+  button{font-family:var(--sans);cursor:pointer;}
+  input,textarea,select{font-family:var(--sans);}
+  :focus-visible{outline:2px solid var(--route);outline-offset:2px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    padding-bottom:24px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:28px;
+  }
+  .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+  .title-block h1{font-size:30px;letter-spacing:-0.01em;}
+  .title-block p{margin:6px 0 0;color:var(--muted);font-size:14.5px;max-width:46ch;}
+
+  .stats{
+    display:flex;
+    gap:0;
+    flex-wrap:wrap;
+  }
+  .stat{
+    padding:0 20px;
+    border-left:1px solid var(--line);
+    min-width:100px;
+  }
+  .stat:first-child{border-left:none;padding-left:0;}
+  .stat .num{
+    font-family:var(--serif);
+    font-size:26px;
+    font-weight:600;
+    display:block;
+    line-height:1.1;
+  }
+  .stat .num.warn{color:var(--flag);}
+  .stat .label{font-size:12.5px;color:var(--muted);}
+
+  /* ---------- Layout ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:28px;
+    align-items:start;
+  }
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .panel + .panel{margin-top:20px;}
+
+  aside .panel{position:sticky;top:20px;}
+  @media (max-width:880px){
+    aside .panel{position:static;}
+  }
+
+  section.main > .block{margin-bottom:32px;}
+  section.main > .block:last-child{margin-bottom:0;}
+
+  .block-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  .block-head h2{font-size:19px;}
+  .block-head .count{color:var(--muted);font-size:13px;font-family:var(--mono);}
+
+  /* ---------- Form ---------- */
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--white);
+    color:var(--ink);
+    font-size:14px;
+  }
+  .field input:focus, .field textarea:focus{border-color:var(--route);}
+  .field textarea{resize:vertical;min-height:64px;font-family:var(--sans);}
+  .field .hint{font-size:11.5px;color:var(--muted);margin-top:4px;}
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 16px;
+    border-radius:var(--radius);
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--white);
+    font-size:13.5px;
+    font-weight:500;
+    transition:background 120ms ease, color 120ms ease;
+  }
+  .btn:hover{background:var(--route-dark);border-color:var(--route-dark);}
+  .btn.secondary{
+    background:transparent;
+    color:var(--ink);
+    border-color:var(--line);
+  }
+  .btn.secondary:hover{border-color:var(--ink);background:transparent;}
+  .btn.danger{
+    background:transparent;
+    color:var(--flag);
+    border-color:var(--flag-light);
+  }
+  .btn.danger:hover{background:var(--flag-light);}
+  .btn.small{padding:5px 10px;font-size:12.5px;}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .form-actions{display:flex;gap:8px;margin-top:16px;}
+
+  /* ---------- Search ---------- */
+  .search-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .search-row input{
+    flex:1;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--white);
+    font-size:13.5px;
+  }
+
+  /* ---------- Ledger table ---------- */
+  .ledger{width:100%;border-collapse:collapse;}
+  .ledger th{
+    text-align:left;
+    font-size:11.5px;
+    text-transform:none;
+    color:var(--muted);
+    font-weight:500;
+    padding:0 10px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  .ledger td{
+    padding:10px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+    font-size:13.5px;
+  }
+  .ledger tr:last-child td{border-bottom:none;}
+  .ledger .url{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--route-dark);
+    word-break:break-all;
+  }
+  .ledger .pg-title{font-weight:600;}
+  .ledger .kw-chip{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    background:var(--route-light);
+    color:var(--route-dark);
+    padding:2px 7px;
+    border-radius:2px;
+    margin:2px 4px 0 0;
+  }
+  .ledger .row-actions{white-space:nowrap;}
+  .ledger .row-actions button{margin-right:6px;}
+  .empty-row td{color:var(--muted);font-style:italic;padding:16px 10px;}
+
+  /* ---------- Suggestions ---------- */
+  .suggestion{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .suggestion:last-child{border-bottom:none;}
+  .suggestion .sugg-body{flex:1;min-width:0;}
+  .sugg-path{
+    font-size:13.5px;
+    margin-bottom:5px;
+  }
+  .sugg-path .pg{font-weight:600;}
+  .sugg-path .arrow{color:var(--route);margin:0 6px;}
+  .sugg-anchor{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+  }
+  .sugg-anchor strong{color:var(--route-dark);font-weight:500;}
+  .sugg-actions{display:flex;gap:6px;flex-shrink:0;}
+
+  /* ---------- Manual link builder ---------- */
+  .manual-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr auto;
+    gap:10px;
+    align-items:end;
+  }
+  @media (max-width:700px){
+    .manual-row{grid-template-columns:1fr;}
+  }
+  .manual-row select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--white);
+    font-size:13.5px;
+  }
+
+  /* ---------- Orphans ---------- */
+  .orphan-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .orphan-pill{
+    font-size:12.5px;
+    padding:5px 10px;
+    background:var(--flag-light);
+    color:var(--flag);
+    border-radius:20px;
+  }
+  .no-orphans{color:var(--muted);font-size:13.5px;font-style:italic;}
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(12px);
+    background:var(--ink);
+    color:var(--white);
+    padding:10px 18px;
+    border-radius:var(--radius);
+    font-size:13.5px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 160ms ease, transform 160ms ease;
+    z-index:50;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .top-actions{display:flex;gap:8px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="top-row">
+      <div class="title-block">
+        <h1>Internal Link Builder</h1>
+        <p>Catalogue your pages, surface linking opportunities from shared keywords, and keep a ledger of the internal links you've confirmed.</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn secondary small" id="exportBtn">Export links (CSV)</button>
+        <button class="btn danger small" id="resetBtn">Reset all data</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="num" id="statPages">0</span><span class="label">Pages</span></div>
+      <div class="stat"><span class="num" id="statLinks">0</span><span class="label">Confirmed links</span></div>
+      <div class="stat"><span class="num" id="statSugg">0</span><span class="label">Suggestions</span></div>
+      <div class="stat"><span class="num warn" id="statOrphans">0</span><span class="label">Orphan pages</span></div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: add / edit page -->
+    <aside>
+      <div class="panel">
+        <h2 id="formTitle" style="font-size:17px;margin-bottom:14px;">Add a page</h2>
+        <form id="pageForm">
+          <div class="field">
+            <label for="pgUrl">URL</label>
+            <input type="text" id="pgUrl" placeholder="/blog/example-post" required>
+          </div>
+          <div class="field">
+            <label for="pgTitle">Page title</label>
+            <input type="text" id="pgTitle" placeholder="How to Plan Internal Links" required>
+          </div>
+          <div class="field">
+            <label for="pgKeywords">Target keywords</label>
+            <input type="text" id="pgKeywords" placeholder="internal linking, seo structure">
+            <div class="hint">Comma-separated. Other pages that mention these will surface as suggestions pointing here.</div>
+          </div>
+          <div class="field">
+            <label for="pgContent">Content snippet / notes</label>
+            <textarea id="pgContent" placeholder="Paste a paragraph or summary of this page's content..."></textarea>
+            <div class="hint">Scanned for other pages' keywords to suggest outbound links from this page.</div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn" id="saveBtn">Add page</button>
+            <button type="button" class="btn secondary" id="cancelEditBtn" style="display:none;">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <!-- RIGHT: pages, suggestions, links, orphans -->
+    <section class="main">
+
+      <div class="block">
+        <div class="block-head">
+          <h2>Pages</h2>
+          <span class="count" id="pagesCount">0 pages</span>
+        </div>
+        <div class="search-row">
+          <input type="text" id="pageSearch" placeholder="Filter pages by title, url or keyword...">
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="ledger">
+            <thead>
+              <tr>
+                <th style="width:26%;">Page</th>
+                <th style="width:34%;">Keywords</th>
+                <th style="width:16%;">In-links</th>
+                <th style="width:24%;"></th>
+              </tr>
+            </thead>
+            <tbody id="pagesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <h2>Suggested links</h2>
+          <span class="count" id="suggCount">0 suggestions</span>
+        </div>
+        <div class="panel" id="suggPanel"></div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <h2>Build a link manually</h2>
+        </div>
+        <div class="panel">
+          <div class="manual-row">
+            <div class="field" style="margin:0;">
+              <label for="manSource">From page</label>
+              <select id="manSource"></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label for="manTarget">To page</label>
+              <select id="manTarget"></select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label for="manAnchor">Anchor text</label>
+              <input type="text" id="manAnchor" placeholder="internal linking guide">
+            </div>
+            <button class="btn" id="manAddBtn" type="button">Add link</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <h2>Confirmed links</h2>
+          <span class="count" id="linksCount">0 links</span>
+        </div>
+        <div class="panel" style="padding:0;overflow-x:auto;">
+          <table class="ledger">
+            <thead>
+              <tr>
+                <th style="width:28%;">From</th>
+                <th style="width:28%;">To</th>
+                <th style="width:28%;">Anchor text</th>
+                <th style="width:16%;"></th>
+              </tr>
+            </thead>
+            <tbody id="linksBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <h2>Orphan pages</h2>
+          <span class="count" id="orphanCount">0</span>
+        </div>
+        <div class="panel">
+          <div id="orphanList" class="orphan-list"></div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- State ----------
+  let pages = [];   // {id, url, title, keywords:[], content}
+  let links = [];   // {id, source, target, anchor}
+  let editingPageId = null;
+  let uidCounter = 1;
+
+  const STORAGE_KEY_PAGES = "ilb:pages";
+  const STORAGE_KEY_LINKS = "ilb:links";
+
+  function uid(){ return "id" + (uidCounter++) + "_" + Math.random().toString(36).slice(2,7); }
+
+  // ---------- Persistence ----------
+  async function loadState(){
+    try{
+      const p = await window.storage.get(STORAGE_KEY_PAGES);
+      if(p && p.value) pages = JSON.parse(p.value);
+    }catch(e){ pages = []; }
+    try{
+      const l = await window.storage.get(STORAGE_KEY_LINKS);
+      if(l && l.value) links = JSON.parse(l.value);
+    }catch(e){ links = []; }
+    renderAll();
+  }
+
+  async function savePages(){
+    try{ await window.storage.set(STORAGE_KEY_PAGES, JSON.stringify(pages)); }
+    catch(e){ console.error("Could not save pages", e); }
+  }
+  async function saveLinks(){
+    try{ await window.storage.set(STORAGE_KEY_LINKS, JSON.stringify(links)); }
+    catch(e){ console.error("Could not save links", e); }
+  }
+
+  // ---------- Helpers ----------
+  function parseKeywords(str){
+    return str.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
+  }
+  function escapeHtml(str){
+    return (str || "").replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[c]));
+  }
+  function pageById(id){ return pages.find(p => p.id === id); }
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=> t.classList.remove("show"), 2200);
+  }
+  function linkExists(sourceId, targetId, anchor){
+    return links.some(l => l.source === sourceId && l.target === targetId &&
+      l.anchor.toLowerCase() === anchor.toLowerCase());
+  }
+
+  // ---------- Suggestion engine ----------
+  function computeSuggestions(){
+    const out = [];
+    const seen = new Set();
+    pages.forEach(source => {
+      const haystack = ((source.content || "") + " " + (source.title || "")).toLowerCase();
+      if(!haystack.trim()) return;
+      pages.forEach(target => {
+        if(target.id === source.id) return;
+        (target.keywords || []).forEach(kw => {
+          if(!kw) return;
+          if(haystack.indexOf(kw) === -1) return;
+          if(linkExists(source.id, target.id, kw)) return;
+          const dedupeKey = source.id + "|" + target.id + "|" + kw;
+          if(seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+          out.push({ sourceId: source.id, targetId: target.id, anchor: kw });
+        });
+      });
+    });
+    return out.slice(0, 40);
+  }
+
+  function computeOrphans(){
+    const targeted = new Set(links.map(l => l.target));
+    return pages.filter(p => !targeted.has(p.id));
+  }
+
+  // ---------- Rendering ----------
+  function renderStats(suggestions, orphans){
+    document.getElementById("statPages").textContent = pages.length;
+    document.getElementById("statLinks").textContent = links.length;
+    document.getElementById("statSugg").textContent = suggestions.length;
+    document.getElementById("statOrphans").textContent = orphans.length;
+  }
+
+  function renderPages(){
+    const search = document.getElementById("pageSearch").value.trim().toLowerCase();
+    const body = document.getElementById("pagesBody");
+    body.innerHTML = "";
+
+    const filtered = pages.filter(p => {
+      if(!search) return true;
+      return p.url.toLowerCase().includes(search) ||
+             p.title.toLowerCase().includes(search) ||
+             (p.keywords||[]).some(k => k.includes(search));
+    });
+
+    document.getElementById("pagesCount").textContent = pages.length + (pages.length===1?" page":" pages");
+
+    if(filtered.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="4">' +
+        (pages.length===0 ? "No pages yet. Add your first page on the left." : "No pages match your filter.") +
+        '</td></tr>';
+      return;
+    }
+
+    filtered.forEach(p => {
+      const inLinks = links.filter(l => l.target === p.id).length;
+      const kwHtml = (p.keywords||[]).map(k => '<span class="kw-chip">' + escapeHtml(k) + '</span>').join("");
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td><div class="pg-title">' + escapeHtml(p.title) + '</div><div class="url">' + escapeHtml(p.url) + '</div></td>' +
+        '<td>' + (kwHtml || '<span style="color:var(--muted);font-size:12.5px;">—</span>') + '</td>' +
+        '<td>' + inLinks + '</td>' +
+        '<td class="row-actions">' +
+          '<button class="btn secondary small" data-edit="' + p.id + '">Edit</button>' +
+          '<button class="btn danger small" data-del="' + p.id + '">Delete</button>' +
+        '</td>';
+      body.appendChild(tr);
+    });
+
+    body.querySelectorAll("[data-edit]").forEach(btn=>{
+      btn.addEventListener("click", ()=> startEditPage(btn.getAttribute("data-edit")));
+    });
+    body.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=> deletePage(btn.getAttribute("data-del")));
+    });
+  }
+
+  function renderSuggestions(suggestions){
+    const panel = document.getElementById("suggPanel");
+    document.getElementById("suggCount").textContent = suggestions.length + (suggestions.length===1 ? " suggestion" : " suggestions");
+
+    if(suggestions.length === 0){
+      panel.innerHTML = '<p class="no-orphans">No suggestions right now. Add content snippets and target keywords to a few pages to generate matches.</p>';
+      return;
+    }
+
+    panel.innerHTML = "";
+    suggestions.forEach((s, idx) => {
+      const source = pageById(s.sourceId);
+      const target = pageById(s.targetId);
+      if(!source || !target) return;
+      const row = document.createElement("div");
+      row.className = "suggestion";
+      row.innerHTML =
+        '<div class="sugg-body">' +
+          '<div class="sugg-path"><span class="pg">' + escapeHtml(source.title) + '</span>' +
+          '<span class="arrow">&#8594;</span><span class="pg">' + escapeHtml(target.title) + '</span></div>' +
+          '<div class="sugg-anchor">matched keyword: <strong>' + escapeHtml(s.anchor) + '</strong></div>' +
+        '</div>' +
+        '<div class="sugg-actions">' +
+          '<button class="btn small" data-accept="' + idx + '">Accept</button>' +
+          '<button class="btn secondary small" data-dismiss="' + idx + '">Dismiss</button>' +
+        '</div>';
+      panel.appendChild(row);
+    });
+
+    panel.querySelectorAll("[data-accept]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const s = suggestions[parseInt(btn.getAttribute("data-accept"),10)];
+        addLink(s.sourceId, s.targetId, s.anchor);
+      });
+    });
+    panel.querySelectorAll("[data-dismiss]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const s = suggestions[parseInt(btn.getAttribute("data-dismiss"),10)];
+        dismissed.add(s.sourceId + "|" + s.targetId + "|" + s.anchor);
+        renderAll();
+      });
+    });
+  }
+
+  const dismissed = new Set();
+
+  function renderLinks(){
+    const body = document.getElementById("linksBody");
+    body.innerHTML = "";
+    document.getElementById("linksCount").textContent = links.length + (links.length===1 ? " link" : " links");
+
+    if(links.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="4">No confirmed links yet. Accept a suggestion or add one manually below.</td></tr>';
+      return;
+    }
+
+    links.forEach(l => {
+      const source = pageById(l.source);
+      const target = pageById(l.target);
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td>' + (source ? '<div class="pg-title">' + escapeHtml(source.title) + '</div><div class="url">' + escapeHtml(source.url) + '</div>' : '<em>deleted page</em>') + '</td>' +
+        '<td>' + (target ? '<div class="pg-title">' + escapeHtml(target.title) + '</div><div class="url">' + escapeHtml(target.url) + '</div>' : '<em>deleted page</em>') + '</td>' +
+        '<td><span class="kw-chip">' + escapeHtml(l.anchor) + '</span></td>' +
+        '<td class="row-actions"><button class="btn danger small" data-dellink="' + l.id + '">Delete</button></td>';
+      body.appendChild(tr);
+    });
+
+    body.querySelectorAll("[data-dellink]").forEach(btn=>{
+      btn.addEventListener("click", ()=> deleteLink(btn.getAttribute("data-dellink")));
+    });
+  }
+
+  function renderOrphans(orphans){
+    const list = document.getElementById("orphanList");
+    document.getElementById("orphanCount").textContent = orphans.length;
+    if(orphans.length === 0){
+      list.innerHTML = pages.length === 0
+        ? '<p class="no-orphans">Add pages to see which ones have no internal links pointing to them.</p>'
+        : '<p class="no-orphans">Every page has at least one internal link pointing to it.</p>';
+      return;
+    }
+    list.innerHTML = orphans.map(p => '<span class="orphan-pill">' + escapeHtml(p.title) + '</span>').join("");
+  }
+
+  function renderManualSelects(){
+    const sourceSel = document.getElementById("manSource");
+    const targetSel = document.getElementById("manTarget");
+    const opts = pages.map(p => '<option value="' + p.id + '">' + escapeHtml(p.title) + '</option>').join("");
+    sourceSel.innerHTML = opts || '<option value="">No pages yet</option>';
+    targetSel.innerHTML = opts || '<option value="">No pages yet</option>';
+  }
+
+  function renderAll(){
+    let suggestions = computeSuggestions().filter(s =>
+      !dismissed.has(s.sourceId + "|" + s.targetId + "|" + s.anchor)
+    );
+    const orphans = computeOrphans();
+    renderStats(suggestions, orphans);
+    renderPages();
+    renderSuggestions(suggestions);
+    renderLinks();
+    renderOrphans(orphans);
+    renderManualSelects();
+  }
+
+  // ---------- Page CRUD ----------
+  function startEditPage(id){
+    const p = pageById(id);
+    if(!p) return;
+    editingPageId = id;
+    document.getElementById("pgUrl").value = p.url;
+    document.getElementById("pgTitle").value = p.title;
+    document.getElementById("pgKeywords").value = (p.keywords||[]).join(", ");
+    document.getElementById("pgContent").value = p.content || "";
+    document.getElementById("formTitle").textContent = "Edit page";
+    document.getElementById("saveBtn").textContent = "Save changes";
+    document.getElementById("cancelEditBtn").style.display = "inline-flex";
+    document.getElementById("pgUrl").scrollIntoView({behavior:"smooth", block:"center"});
+  }
+
+  function resetForm(){
+    editingPageId = null;
+    document.getElementById("pageForm").reset();
+    document.getElementById("formTitle").textContent = "Add a page";
+    document.getElementById("saveBtn").textContent = "Add page";
+    document.getElementById("cancelEditBtn").style.display = "none";
+  }
+
+  function deletePage(id){
+    if(!confirm("Delete this page? Links referencing it will also be removed.")) return;
+    pages = pages.filter(p => p.id !== id);
+    links = links.filter(l => l.source !== id && l.target !== id);
+    if(editingPageId === id) resetForm();
+    savePages(); saveLinks();
+    renderAll();
+    toast("Page deleted");
+  }
+
+  // ---------- Link CRUD ----------
+  function addLink(sourceId, targetId, anchor){
+    if(!sourceId || !targetId){ toast("Choose both a source and target page"); return; }
+    if(sourceId === targetId){ toast("A page can't link to itself"); return; }
+    if(!anchor || !anchor.trim()){ toast("Anchor text is required"); return; }
+    if(linkExists(sourceId, targetId, anchor)){ toast("That link already exists"); return; }
+    links.push({ id: uid(), source: sourceId, target: targetId, anchor: anchor.trim() });
+    saveLinks();
+    renderAll();
+    toast("Link added");
+  }
+
+  function deleteLink(id){
+    links = links.filter(l => l.id !== id);
+    saveLinks();
+    renderAll();
+    toast("Link removed");
+  }
+
+  // ---------- CSV export ----------
+  function exportCsv(){
+    if(links.length === 0){ toast("No links to export yet"); return; }
+    const rows = [["From URL","From Title","To URL","To Title","Anchor Text"]];
+    links.forEach(l=>{
+      const s = pageById(l.source), t = pageById(l.target);
+      rows.push([
+        s ? s.url : "", s ? s.title : "",
+        t ? t.url : "", t ? t.title : "",
+        l.anchor
+      ]);
+    });
+    const csv = rows.map(r => r.map(cell => {
+      const v = String(cell).replace(/"/g,'""');
+      return /[",\n]/.test(v) ? '"' + v + '"' : v;
+    }).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "internal-links.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("CSV exported");
+  }
+
+  // ---------- Event wiring ----------
+  document.getElementById("pageForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const url = document.getElementById("pgUrl").value.trim();
+    const title = document.getElementById("pgTitle").value.trim();
+    const keywords = parseKeywords(document.getElementById("pgKeywords").value);
+    const content = document.getElementById("pgContent").value.trim();
+    if(!url || !title){ toast("URL and title are required"); return; }
+
+    if(editingPageId){
+      const p = pageById(editingPageId);
+      if(p){ p.url = url; p.title = title; p.keywords = keywords; p.content = content; }
+      toast("Page updated");
+    }else{
+      pages.push({ id: uid(), url, title, keywords, content });
+      toast("Page added");
+    }
+    savePages();
+    resetForm();
+    renderAll();
+  });
+
+  document.getElementById("cancelEditBtn").addEventListener("click", resetForm);
+  document.getElementById("pageSearch").addEventListener("input", renderPages);
+  document.getElementById("exportBtn").addEventListener("click", exportCsv);
+
+  document.getElementById("manAddBtn").addEventListener("click", function(){
+    const sourceId = document.getElementById("manSource").value;
+    const targetId = document.getElementById("manTarget").value;
+    const anchor = document.getElementById("manAnchor").value;
+    addLink(sourceId, targetId, anchor);
+    document.getElementById("manAnchor").value = "";
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", async function(){
+    if(!confirm("This clears every page and link you've stored. Continue?")) return;
+    pages = []; links = []; dismissed.clear();
+    resetForm();
+    await savePages(); await saveLinks();
+    renderAll();
+    toast("All data cleared");
+  });
+
+  // ---------- Init ----------
+  loadState();
+})();
+</script>
+</body>
+</html>
